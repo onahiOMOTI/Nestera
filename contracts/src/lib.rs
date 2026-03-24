@@ -19,6 +19,7 @@ mod lock;
 pub mod rewards;
 mod storage_types;
 pub mod strategy;
+pub mod treasury;
 mod ttl;
 mod upgrade;
 mod users;
@@ -477,17 +478,6 @@ impl NesteraContract {
         Ok(())
     }
 
-    pub fn set_protocol_fee_bps(env: Env, bps: u32) -> Result<(), SavingsError> {
-        let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
-        admin.require_auth();
-        if bps > 10_000 {
-            return Err(SavingsError::InvalidAmount);
-        }
-        env.storage().instance().set(&DataKey::PlatformFee, &bps);
-        env.events().publish((symbol_short!("set_pfee"),), bps);
-        Ok(())
-    }
-
     pub fn pause(env: Env, caller: Address) -> Result<(), SavingsError> {
         caller.require_auth();
         governance::validate_admin_or_governance(&env, &caller)?;
@@ -725,13 +715,6 @@ impl NesteraContract {
         env.storage().instance().get(&DataKey::FeeRecipient)
     }
 
-    pub fn get_protocol_fee_bps(env: Env) -> u32 {
-        env.storage()
-            .instance()
-            .get(&DataKey::PlatformFee)
-            .unwrap_or(0)
-    }
-
     pub fn get_protocol_fee_balance(env: Env, recipient: Address) -> i128 {
         env.storage()
             .persistent()
@@ -897,9 +880,18 @@ impl NesteraContract {
         env: Env,
         admin: Address,
         treasury: Address,
-        protocol_fee_bps: u32,
+        deposit_fee_bps: u32,
+        withdrawal_fee_bps: u32,
+        performance_fee_bps: u32,
     ) -> Result<(), SavingsError> {
-        config::initialize_config(&env, admin, treasury, protocol_fee_bps)
+        config::initialize_config(
+            &env,
+            admin,
+            treasury,
+            deposit_fee_bps,
+            withdrawal_fee_bps,
+            performance_fee_bps,
+        )
     }
 
     /// Returns the current global configuration
@@ -917,12 +909,14 @@ impl NesteraContract {
     }
 
     /// Updates the protocol fee in basis points (admin only)
-    pub fn set_protocol_fee(
+    pub fn set_fees(
         env: Env,
         admin: Address,
-        new_fee_bps: u32,
+        deposit_fee: u32,
+        withdrawal_fee: u32,
+        performance_fee: u32,
     ) -> Result<(), SavingsError> {
-        config::set_protocol_fee(&env, admin, new_fee_bps)
+        config::set_fees(&env, admin, deposit_fee, withdrawal_fee, performance_fee)
     }
 
     /// Pauses the contract via config module (admin only)
@@ -941,6 +935,31 @@ impl NesteraContract {
 
     pub fn version(env: Env) -> u32 {
         upgrade::get_version(&env)
+    }
+
+    // ========== Treasury Functions ==========
+
+    /// Returns the current treasury state
+    pub fn get_treasury(env: Env) -> treasury::types::Treasury {
+        treasury::get_treasury(&env)
+    }
+
+    /// Allocates the unallocated treasury balance into reserves, rewards, and operations.
+    /// Percentages are in basis points and must sum to 10_000.
+    pub fn allocate_treasury(
+        env: Env,
+        admin: Address,
+        reserve_percent: u32,
+        rewards_percent: u32,
+        operations_percent: u32,
+    ) -> Result<treasury::types::Treasury, SavingsError> {
+        treasury::allocate_treasury(
+            &env,
+            &admin,
+            reserve_percent,
+            rewards_percent,
+            operations_percent,
+        )
     }
 
     // ========== Governance Functions ==========

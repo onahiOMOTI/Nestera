@@ -223,11 +223,11 @@ pub fn harvest_strategy(env: &Env, strategy_address: Address) -> Result<i128, Sa
 
     // 5. Calculate treasury allocation
     let config = crate::config::get_config(env)?;
-    let protocol_fee_bps = config.protocol_fee_bps;
+    let performance_fee_bps = config.performance_fee_bps;
 
-    let treasury_fee = if protocol_fee_bps > 0 {
+    let treasury_fee = if performance_fee_bps > 0 {
         (actual_yield
-            .checked_mul(protocol_fee_bps as i128)
+            .checked_mul(performance_fee_bps as i128)
             .ok_or(SavingsError::Overflow)?)
             / 10_000
     } else {
@@ -268,6 +268,14 @@ pub fn harvest_strategy(env: &Env, strategy_address: Address) -> Result<i128, Sa
         (symbol_short!("strat"), symbol_short!("harvest")),
         (strategy_address, actual_yield, treasury_fee, user_yield),
     );
+
+    // Record performance fee and yield in treasury
+    if treasury_fee > 0 {
+        crate::treasury::record_fee(env, treasury_fee, soroban_sdk::Symbol::new(env, "perf"));
+    }
+    if user_yield > 0 {
+        crate::treasury::record_yield(env, user_yield);
+    }
 
     Ok(actual_yield)
 }

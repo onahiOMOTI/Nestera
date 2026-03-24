@@ -31,7 +31,7 @@ fn setup_with_treasury() -> (
     env.mock_all_auths();
     client.initialize(&admin, &admin_pk);
     // Initialize config so harvest_strategy can read treasury + protocol_fee_bps
-    client.initialize_config(&admin, &treasury, &1_000u32); // 10% fee
+    client.initialize_config(&admin, &treasury, &1_000u32, &1_000u32, &1_000u32); // 10% fee
 
     (env, client, admin, treasury, contract_id)
 }

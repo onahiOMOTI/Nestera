@@ -75,7 +75,7 @@ fn setup_env() -> (
     let treasury = Address::generate(&env);
     let admin_pk = BytesN::from_array(&env, &[1u8; 32]);
     client.initialize(&admin, &admin_pk);
-    client.initialize_config(&admin, &treasury, &1_000u32); // 10% fee
+    client.initialize_config(&admin, &treasury, &1_000u32, &1_000u32, &1_000u32); // 10% fee
 
     let user1 = Address::generate(&env);
     let strategy_id = env.register(MockYieldStrategy, ());

@@ -136,17 +136,19 @@ pub enum DataKey {
     /// Global pause flag for emergency control
     Paused,
     /// Treasury address for protocol fee collection
+    TreasuryAddress,
+    /// Protocol fee in basis points (100 = 1%) for deposits
+    DepositFeeBps,
+    /// Protocol fee in basis points for withdrawals
+    WithdrawalFeeBps,
+    /// Protocol fee in basis points for performance (yield harvest)
+    PerformanceFeeBps,
+    /// Store the Treasury struct metrics (from issue #321)
     Treasury,
-    /// Protocol fee in basis points (100 = 1%)
-    ProtocolFeeBps,
     /// Flag to track config initialization
     ConfigInitialized,
-    /// Minimum allowed deposit amount
-    MinimumDeposit,
-    /// Fee applied on withdrawals
-    WithdrawalFee,
-    /// Protocol fee configuration
-    PlatformFee,
+    /// Treasury allocation config (reserve/rewards/operations percentages)
+    AllocationConfig,
     /// Early break fee (basis points) for goal saves
     EarlyBreakFeeBps,
     /// Fee recipient for protocol/treasury fees
