@@ -98,6 +98,31 @@ export class SavingsService {
     return product;
   }
 
+  async findProductWithLiveData(id: string): Promise<{
+    product: SavingsProduct;
+    totalAssets: number;
+  }> {
+    const product = await this.findOneProduct(id);
+
+    let totalAssets = 0;
+
+    // Query live contract data if contractId is available
+    if (product.contractId) {
+      try {
+        totalAssets = await this.blockchainSavingsService.getVaultTotalAssets(
+          product.contractId,
+        );
+      } catch (error) {
+        this.logger.warn(
+          `Failed to fetch live total_assets for contract ${product.contractId}: ${(error as Error).message}`,
+        );
+        // Continue with totalAssets = 0 if contract query fails
+      }
+    }
+
+    return { product, totalAssets };
+  }
+
   async subscribe(
     userId: string,
     productId: string,
