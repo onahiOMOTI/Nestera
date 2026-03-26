@@ -52,6 +52,7 @@ import { IndexerService } from './indexer.service';
     SavingsService,
     OracleService,
     StellarEventListenerService,
+    IndexerService,
     DepositHandler,
     YieldHandler,
   ],

@@ -20,6 +20,7 @@ interface SorobanEvent {
 export class IndexerService implements OnModuleInit {
   private readonly logger = new Logger(IndexerService.name);
   private lastProcessedLedger = 0;
+  private lastProcessedTimestamp: number | null = null;
 
   constructor(
     @InjectRepository(DeadLetterEvent)
@@ -60,6 +61,7 @@ export class IndexerService implements OnModuleInit {
     try {
       await this.handleEvent(event);
       this.lastProcessedLedger = event.ledger;
+      this.lastProcessedTimestamp = Date.now();
     } catch (err) {
       const errorMessage = (err as Error).message ?? String(err);
 
@@ -109,5 +111,13 @@ export class IndexerService implements OnModuleInit {
 
     // Placeholder: replace with actual @stellar/stellar-sdk RPC call
     return [];
+  }
+
+  /**
+   * Get the timestamp of the last processed ledger
+   * Used by health checks to verify indexer is actively processing
+   */
+  getLastProcessedTimestamp(): number | null {
+    return this.lastProcessedTimestamp;
   }
 }
