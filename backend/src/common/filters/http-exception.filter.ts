@@ -41,9 +41,14 @@ function isDatabaseConnectionError(exception: unknown): exception is Error {
 
   return (
     DB_CONNECTION_PATTERNS.some((pattern) => pattern.test(message)) ||
-    ['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', '57P01', '08001', '08006'].includes(
-      code,
-    )
+    [
+      'ECONNREFUSED',
+      'ENOTFOUND',
+      'ETIMEDOUT',
+      '57P01',
+      '08001',
+      '08006',
+    ].includes(code)
   );
 }
 

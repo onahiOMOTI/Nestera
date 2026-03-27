@@ -36,7 +36,8 @@ describe('Throttler Guard (e2e)', () => {
      * Expected: 6th request should return 429 Too Many Requests
      */
     it('should return 429 after exceeding auth rate limit (5 req/15min)', async () => {
-      const authNonceUrl = '/auth/nonce?publicKey=GBUQWP3BOUZX34ULNQG23RQ6F4BFXEUVS2YB5YKTVQ63XVXVYXSX';
+      const authNonceUrl =
+        '/auth/nonce?publicKey=GBUQWP3BOUZX34ULNQG23RQ6F4BFXEUVS2YB5YKTVQ63XVXVYXSX';
 
       // Make 5 requests (within limit)
       for (let i = 0; i < 5; i++) {
@@ -101,7 +102,9 @@ describe('Throttler Guard (e2e)', () => {
       }
 
       // All responses should be 2xx, no 429 errors
-      const allSuccess = responses.every((status) => status >= 200 && status < 300);
+      const allSuccess = responses.every(
+        (status) => status >= 200 && status < 300,
+      );
       expect(allSuccess).toBe(true);
     });
   });

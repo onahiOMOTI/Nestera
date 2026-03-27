@@ -14,7 +14,8 @@ export class SubscribeDto {
 
   @ApiPropertyOptional({
     example: 'GABCDEF234567ABCDEFGHIJKLMNOPQRSTUVWXYZ234567ABCDEFGHJKLMN',
-    description: 'Optional Stellar wallet address associated with this subscription',
+    description:
+      'Optional Stellar wallet address associated with this subscription',
   })
   @IsOptional()
   @IsStellarPublicKey()

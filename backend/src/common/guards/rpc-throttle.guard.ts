@@ -78,11 +78,14 @@ export class RpcThrottleGuard extends ThrottlerGuard {
     response.setHeader('Retry-After', Math.ceil(ttl / 1000));
     response.setHeader('X-RateLimit-Limit', limit);
     response.setHeader('X-RateLimit-Remaining', 0);
-    response.setHeader('X-RateLimit-Reset', new Date(Date.now() + ttl).toISOString());
+    response.setHeader(
+      'X-RateLimit-Reset',
+      new Date(Date.now() + ttl).toISOString(),
+    );
 
     // Throw ThrottlerException which results in HTTP 429
     throw new ThrottlerException(
-      `Too many RPC requests. Maximum ${limit} requests per ${Math.round(ttl / 1000)} seconds allowed.`
+      `Too many RPC requests. Maximum ${limit} requests per ${Math.round(ttl / 1000)} seconds allowed.`,
     );
   }
 }

@@ -1,6 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext, HttpException } from '@nestjs/common';
-import { ThrottlerException, ThrottlerModuleOptions, ThrottlerStorage } from '@nestjs/throttler';
+import {
+  ThrottlerException,
+  ThrottlerModuleOptions,
+  ThrottlerStorage,
+} from '@nestjs/throttler';
 import { Reflector } from '@nestjs/core';
 import { RpcThrottleGuard } from './rpc-throttle.guard';
 
@@ -32,8 +36,8 @@ describe('RpcThrottleGuard', () => {
     // Initialize the guard with mocked dependencies
     guard = new RpcThrottleGuard(
       mockOptions as any,
-      mockStorageService as any,
-      mockReflector as any,
+      mockStorageService,
+      mockReflector,
     );
 
     // Mock response object
@@ -110,9 +114,9 @@ describe('RpcThrottleGuard', () => {
       const limit = 10;
       const ttl = 60000; // 1 minute
 
-      await expect(
-        guard.onLimitExceeded(context, limit, ttl),
-      ).rejects.toThrow('Too many RPC requests');
+      await expect(guard.onLimitExceeded(context, limit, ttl)).rejects.toThrow(
+        'Too many RPC requests',
+      );
     });
 
     it('should set Retry-After header', async () => {

@@ -80,7 +80,11 @@ export class IndexerService implements OnModuleInit {
 
     for (const event of events) {
       const ok = await this.processEvent(event);
-      ok ? processed++ : failed++;
+      if (ok) {
+        processed++;
+      } else {
+        failed++;
+      }
     }
 
     this.indexerState.totalEventsProcessed += processed;
