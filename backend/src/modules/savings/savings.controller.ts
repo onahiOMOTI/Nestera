@@ -39,9 +39,11 @@ import {
   ProductMetricsDto,
   ProductMetricsQueryDto,
 } from './dto/product-metrics.dto';
+import { RecommendationResponseDto } from './dto/recommendation-response.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RpcThrottleGuard } from '../../common/guards/rpc-throttle.guard';
+import { RecommendationService } from './services/recommendation.service';
 import {
   SavingsGoalProgress,
   UserSubscriptionWithLiveBalance,
@@ -50,7 +52,10 @@ import {
 @ApiTags('savings')
 @Controller('savings')
 export class SavingsController {
-  constructor(private readonly savingsService: SavingsService) {}
+  constructor(
+    private readonly savingsService: SavingsService,
+    private readonly recommendationService: RecommendationService,
+  ) {}
 
   @Get('products')
   @UseInterceptors(CacheInterceptor)
@@ -98,7 +103,7 @@ export class SavingsController {
     description: 'Soroban RPC request timeout',
   })
   async getProductDetails(@Param('id') id: string): Promise<ProductDetailsDto> {
-    const { product, totalAssets } =
+    const { product, totalAssets, capacity } =
       await this.savingsService.findProductWithLiveData(id);
 
     const totalAssetsXlm = totalAssets / 10_000_000;
@@ -112,10 +117,17 @@ export class SavingsController {
       minAmount: product.minAmount,
       maxAmount: product.maxAmount,
       tenureMonths: product.tenureMonths,
+      maxSubscriptionsPerUser: product.maxSubscriptionsPerUser,
+      version: product.version ?? 1,
       isActive: product.isActive,
       contractId: product.contractId,
       totalAssets,
       totalAssetsXlm,
+      maxCapacity: capacity.maxCapacity,
+      utilizedCapacity: capacity.utilizedCapacity,
+      availableCapacity: capacity.availableCapacity,
+      utilizationPercentage: capacity.utilizationPercentage,
+      isFull: capacity.isFull,
       riskLevel: product.riskLevel || RiskLevel.LOW,
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
@@ -194,7 +206,10 @@ export class SavingsController {
     description: 'Withdrawal request created',
     type: WithdrawalResponseDto,
   })
-  @ApiResponse({ status: 400, description: 'Invalid request or insufficient balance' })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid request or insufficient balance',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Subscription not found' })
   async withdraw(

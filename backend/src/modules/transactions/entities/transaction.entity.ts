@@ -69,6 +69,9 @@ export class Transaction extends BaseEntity {
   @CreateDateColumn()
   createdAt: Date;
 
+  @Column({ type: 'boolean', default: false })
+  flagged: boolean;
+
   @Column({ type: 'varchar', nullable: true })
   category: string | null;
 

@@ -49,6 +49,20 @@ export default () => ({
     pass: process.env.MAIL_PASS,
     from: process.env.MAIL_FROM || '"Nestera" <noreply@nestera.io>',
   },
+  kyc: {
+    providerBaseUrl: process.env.KYC_PROVIDER_BASE_URL,
+    providerApiKey: process.env.KYC_PROVIDER_API_KEY,
+    piiEncryptionKey: process.env.KYC_PII_ENCRYPTION_KEY,
+  },
+  backup: {
+    s3Bucket: process.env.BACKUP_S3_BUCKET,
+    s3Region: process.env.BACKUP_S3_REGION ?? 'us-east-1',
+    awsAccessKeyId: process.env.BACKUP_AWS_ACCESS_KEY_ID,
+    awsSecretAccessKey: process.env.BACKUP_AWS_SECRET_ACCESS_KEY,
+    encryptionKey: process.env.BACKUP_ENCRYPTION_KEY, // 64 hex chars = 32 bytes
+    retentionDays: parseInt(process.env.BACKUP_RETENTION_DAYS ?? '30', 10),
+    tmpDir: process.env.BACKUP_TMP_DIR ?? '/tmp',
+  },
   hospital: {
     endpoints: {
       // Hospital endpoints from environment variables
@@ -77,5 +91,12 @@ export default () => ({
       process.env.HOSPITAL_CIRCUIT_BREAKER_TIMEOUT || '60000',
       10,
     ),
+  },
+  balanceSync: {
+    cacheTtlSeconds: parseInt(process.env.BALANCE_CACHE_TTL_SECONDS || '300', 10),
+    pollIntervalMs: parseInt(process.env.BALANCE_POLL_INTERVAL_MS || '5000', 10),
+    reconnectInitialDelayMs: parseInt(process.env.BALANCE_RECONNECT_INIT_MS || '1000', 10),
+    reconnectMaxDelayMs: parseInt(process.env.BALANCE_RECONNECT_MAX_MS || '60000', 10),
+    metricsPersistIntervalMs: parseInt(process.env.BALANCE_METRICS_PERSIST_MS || '60000', 10),
   },
 });

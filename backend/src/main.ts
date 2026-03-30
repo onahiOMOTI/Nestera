@@ -1,10 +1,17 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import {
+  VersioningMiddleware,
+  CURRENT_VERSION,
+} from './common/versioning/versioning.middleware';
+import { VersionAnalyticsInterceptor } from './common/versioning/version-analytics.interceptor';
+import { VersionAnalyticsService } from './common/versioning/version-analytics.service';
+import { GracefulShutdownService } from './common/services/graceful-shutdown.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -13,6 +20,19 @@ async function bootstrap() {
   const port = configService.get<number>('port');
 
   app.setGlobalPrefix('api');
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: CURRENT_VERSION,
+  });
+
+  // Register header-based version negotiation + deprecation warnings
+  const versioningMiddleware = new VersioningMiddleware();
+  app.use(versioningMiddleware.use.bind(versioningMiddleware));
+
+  // Register version analytics interceptor globally
+  const versionAnalytics = app.get(VersionAnalyticsService);
+  app.useGlobalInterceptors(new VersionAnalyticsInterceptor(versionAnalytics));
+
   app.useGlobalFilters(new AllExceptionsFilter());
   app.useGlobalPipes(
     new ValidationPipe({
@@ -22,20 +42,54 @@ async function bootstrap() {
     }),
   );
 
-  // Swagger setup
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('Nestera API')
-    .setDescription('API documentation for the Nestera platform')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('api/docs', app, document);
+  // Swagger setup — one document per supported version
+  for (const version of ['1', '2']) {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle(`Nestera API v${version}`)
+      .setDescription(
+        version === '1'
+          ? 'API v1 — DEPRECATED. Sunset: 2026-09-01. Migrate to v2.'
+          : 'API v2 — Current stable version.',
+      )
+      .setVersion(version)
+      .addBearerAuth()
+      .build();
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup(`api/v${version}/docs`, app, document);
+  }
 
-  await app.listen(port || 3001);
+  const server = await app.listen(port || 3001);
   const logger = app.get(Logger);
   logger.log(`Application is running on: http://localhost:${port}/api`);
-  logger.log(`Swagger docs available at: http://localhost:${port}/api/docs`);
+  logger.log(
+    `Swagger v1 docs (deprecated): http://localhost:${port}/api/v1/docs`,
+  );
+  logger.log(`Swagger v2 docs: http://localhost:${port}/api/v2/docs`);
+
+  // Setup graceful shutdown
+  const gracefulShutdown = app.get(GracefulShutdownService);
+
+  const signals = ['SIGTERM', 'SIGINT'];
+  signals.forEach((signal) => {
+    process.on(signal, async () => {
+      logger.log(`Received ${signal}, starting graceful shutdown...`);
+      server.close(async () => {
+        await app.close();
+        process.exit(0);
+      });
+    });
+  });
+
+  // Handle uncaught exceptions
+  process.on('uncaughtException', (error) => {
+    logger.error('Uncaught Exception:', error);
+    process.exit(1);
+  });
+
+  process.on('unhandledRejection', (reason, promise) => {
+    logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    process.exit(1);
+  });
 }
 
 bootstrap().catch((error: unknown) => {

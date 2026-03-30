@@ -154,4 +154,36 @@ export class MailService {
       );
     }
   }
+
+  async sendSavingsAlertEmail(
+    userEmail: string,
+    name: string,
+    message: string,
+  ): Promise<void> {
+    try {
+      await this.mailerService.sendMail({
+        to: userEmail,
+        subject: 'Savings product alert',
+        template: './generic-notification',
+        context: {
+          name: name || 'User',
+          message,
+        },
+      });
+      this.logger.log(`Savings alert email sent to ${userEmail}`);
+    } catch (error) {
+      this.logger.error(
+        `Failed to send savings alert email to ${userEmail}`,
+        error,
+      );
+    }
+  }
+
+  async sendRawMail(to: string, subject: string, text: string): Promise<void> {
+    try {
+      await this.mailerService.sendMail({ to, subject, text });
+    } catch (error) {
+      this.logger.error(`Failed to send raw email to ${to}`, error);
+    }
+  }
 }
