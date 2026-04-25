@@ -17,10 +17,10 @@ const companyLinks = [
 ];
 
 const communityLinks = [
-  { label: 'Discord', href: '#' },
+  { label: 'Discord', href: 'https://discord.gg/nestera' },
+  { label: 'Telegram', href: 'https://t.me/nestera' },
   { label: 'Twitter', href: '#' },
-  { label: 'GitHub', href: '#' },
-  { label: 'Docs', href: '#' },
+  { label: 'GitHub', href: 'https://github.com/nestera' },
 ];
 
 const Footer: React.FC = () => {
