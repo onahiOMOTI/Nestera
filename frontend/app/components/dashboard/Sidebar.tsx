@@ -15,6 +15,10 @@ import {
   Copy,
   LayoutGrid,
   History,
+  Bell,
+  Users,
+  Briefcase,
+  LifeBuoy,
   UserCircle,
 } from "lucide-react";
 
@@ -23,10 +27,14 @@ const navLinks = [
   { label: "Savings Pools", href: "/dashboard/savings-pools", icon: Landmark },
   { label: "Staking", href: "/dashboard/staking", icon: TrendingUp },
   { label: "Analytics", href: "/dashboard/analytics", icon: PieChart },
+  { label: "Portfolio", href: "/dashboard/portfolio", icon: Briefcase },
   { label: "Governance", href: "/dashboard/governance", icon: ShieldCheck },
   { label: "Transactions", href: "/dashboard/transactions", icon: History },
+  { label: "Referrals", href: "/dashboard/referrals", icon: Users },
+  { label: "Notifications", href: "/dashboard/notifications", icon: Bell },
   { label: "Profile", href: "/dashboard/profile", icon: UserCircle },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
+  { label: "Support", href: "/support", icon: LifeBuoy },
 ];
 
 const Sidebar: React.FC = () => {
