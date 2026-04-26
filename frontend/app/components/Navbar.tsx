@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Wallet } from "lucide-react";
+import { Wallet, Loader2 } from "lucide-react";
+import { useWallet } from "../context/WalletContext";
 
 interface NavLink {
   label: string;
@@ -13,6 +14,8 @@ interface NavLink {
 const Navbar: React.FC = () => {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { address, network, isConnected, isLoading, error, connect } =
+    useWallet();
 
   const navLinks: NavLink[] = [
     { label: "Features", href: "/features" },
@@ -28,13 +31,48 @@ const Navbar: React.FC = () => {
 
   const navLinkBase =
     "text-sm font-medium no-underline text-slate-300 transition-all duration-200 border-b-2 border-transparent pb-0.5 hover:text-white";
-  const navLinkActive =
-    "text-cyan-500 border-cyan-500 border-b-cyan-500";
+  const navLinkActive = "text-cyan-500 border-cyan-500 border-b-cyan-500";
 
   const mobileLinkBase =
     "block py-3 px-3 rounded-md text-base font-medium no-underline text-slate-300 transition-all duration-200 border-l-4 border-transparent hover:text-white hover:bg-slate-800";
-  const mobileLinkActive =
-    "text-cyan-500 bg-slate-800 border-l-cyan-500";
+  const mobileLinkActive = "text-cyan-500 bg-slate-800 border-l-cyan-500";
+
+  const shortAddress = address
+    ? `${address.slice(0, 4)}...${address.slice(-4)}`
+    : null;
+
+  const WalletButton = ({ mobile = false }: { mobile?: boolean }) => {
+    if (isConnected && address) {
+      return (
+        <div
+          className={`flex items-center gap-2 py-2 px-4 rounded-full bg-[#0e2a2a] border border-[#00c9c8]/40 text-[#00c9c8] text-sm font-semibold ${mobile ? "w-full justify-center mt-4" : ""}`}
+        >
+          <span className="w-2 h-2 rounded-full bg-[#00c9c8] inline-block" />
+          <span>{shortAddress}</span>
+          {network && (
+            <span className="text-xs text-slate-400 font-normal">
+              {network}
+            </span>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <button
+        type="button"
+        onClick={connect}
+        disabled={isLoading}
+        title={error ?? undefined}
+        className={`inline-flex items-center justify-center gap-2 py-3 px-6 rounded-full bg-[#00c9c8] text-[#061a1a] font-semibold text-sm border-none cursor-pointer shadow-[0_10px_15px_-3px_rgba(0,212,192,0.1)] transition-all duration-200 hover:shadow-[0_10px_15px_-3px_rgba(0,212,192,0.5)] hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 ${mobile ? "w-full mt-4" : "hidden sm:inline-flex"}`}
+      >
+        {isLoading ? (
+          <Loader2 size={14} className="animate-spin" />
+        ) : null}
+        {isLoading ? "Connecting..." : "Connect Wallet"}
+      </button>
+    );
+  };
 
   return (
     <nav className="sticky top-0 z-50 bg-[#061a1a]">
@@ -71,12 +109,7 @@ const Navbar: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            <button
-              type="button"
-              className="hidden sm:inline-flex items-center justify-center py-3 px-6 rounded-full bg-[#00c9c8] text-[#061a1a] font-semibold text-sm border-none cursor-pointer shadow-[0_10px_15px_-3px_rgba(0,212,192,0.1)] transition-all duration-200 hover:shadow-[0_10px_15px_-3px_rgba(0,212,192,0.5)] hover:scale-105"
-            >
-              Connect Wallet
-            </button>
+            <WalletButton />
 
             <button
               type="button"
@@ -135,12 +168,7 @@ const Navbar: React.FC = () => {
               {link.label}
             </Link>
           ))}
-          <button
-            type="button"
-            className="w-full mt-4 py-3 px-6 rounded-full bg-[#00c9c8] text-[#061a1a] font-semibold text-sm border-none cursor-pointer shadow-[0_10px_15px_-3px_rgba(0,212,192,0.1)] transition-all duration-200 hover:shadow-[0_10px_15px_-3px_rgba(0,212,192,0.5)]"
-          >
-            Connect Wallet
-          </button>
+          <WalletButton mobile />
         </div>
       </div>
     </nav>

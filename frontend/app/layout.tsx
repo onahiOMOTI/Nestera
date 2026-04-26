@@ -1,6 +1,7 @@
 import "./globals.css";
 
 import type { Metadata } from "next";
+import { WalletProvider } from "./context/WalletContext";
 
 export const metadata: Metadata = {
   title: "Nestera - Decentralized Savings on Stellar",
@@ -14,7 +15,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-slate-950 text-white">{children}</body>
+      <body className="bg-slate-950 text-white">
+        <WalletProvider>{children}</WalletProvider>
+      </body>
     </html>
   );
 }
