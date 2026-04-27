@@ -3,47 +3,77 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsStellarPublicKey } from '../../common/validators/is-stellar-key.validator';
 
 export class RegisterDto {
-  @ApiProperty({ example: 'alice@example.com' })
+  @ApiProperty({
+    example: 'alice@example.com',
+    description: 'User email address',
+  })
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: 'supersecret123' })
+  @ApiProperty({
+    example: 'supersecret123',
+    description: 'User password (min 8 characters)',
+    minLength: 8,
+    maxLength: 32,
+  })
   @IsString()
   @MinLength(8)
   @MaxLength(32)
   password: string;
 
-  @ApiProperty({ example: 'Alice', required: false })
+  @ApiProperty({
+    example: 'Alice',
+    description: 'User display name (optional)',
+    required: false,
+  })
   @IsString()
   name?: string;
 }
 
 export class LoginDto {
-  @ApiProperty({ example: 'alice@example.com' })
+  @ApiProperty({
+    example: 'alice@example.com',
+    description: 'User email address',
+  })
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: 'supersecret123' })
+  @ApiProperty({
+    example: 'supersecret123',
+    description: 'User password',
+  })
   @IsString()
   password: string;
 }
 
 export class GetNonceDto {
-  @ApiProperty({ example: 'GABC...' })
+  @ApiProperty({
+    example: 'GABCDEF234567ABCDEFGHIJKLMNOPQRSTUVWXYZ234567ABCDEFGHJKLMN',
+    description: 'Stellar public key (G... format) to fetch nonce for',
+  })
   @IsStellarPublicKey()
   publicKey: string;
 }
 
 export class VerifySignatureDto {
-  @ApiProperty({ example: 'GABC...' })
+  @ApiProperty({
+    example: 'GABCDEF234567ABCDEFGHIJKLMNOPQRSTUVWXYZ234567ABCDEFGHJKLMN',
+    description: 'Stellar public key (G... format)',
+  })
   @IsStellarPublicKey()
   publicKey: string;
 
-  @ApiProperty({ description: 'Hex-encoded Ed25519 signature over the nonce' })
+  @ApiProperty({
+    description: 'Hex-encoded Ed25519 signature over the nonce',
+    example: 'a1b2c3d4e5f60718293a4b5c6d7e8f9...',
+  })
   @IsString()
   signature: string;
 
-  @ApiProperty({ description: 'The nonce returned by GET /auth/nonce' })
+  @ApiProperty({
+    description: 'The nonce returned by GET /auth/nonce',
+    example: 'abc123def456789...',
+  })
   @IsString()
   nonce: string;
 }
@@ -57,7 +87,7 @@ export class VerifySignatureDto {
  */
 export class LinkWalletDto {
   @ApiProperty({
-    example: 'GABC1234...',
+    example: 'GABCDEF234567ABCDEFGHIJKLMNOPQRSTUVWXYZ234567ABCDEFGHJKLMN',
     description: 'Stellar G... public key to link to the authenticated account',
   })
   @IsStellarPublicKey()
@@ -65,12 +95,14 @@ export class LinkWalletDto {
 
   @ApiProperty({
     description: 'The nonce returned by GET /auth/nonce?publicKey=<key>',
+    example: 'abc123def456789...',
   })
   @IsString()
   nonce: string;
 
   @ApiProperty({
     description: 'Hex-encoded Ed25519 signature of the nonce bytes',
+    example: 'a1b2c3d4e5f60718293a4b5c6d7e8f9...',
   })
   @IsString()
   signature: string;

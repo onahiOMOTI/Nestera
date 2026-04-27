@@ -56,6 +56,8 @@ export class SavingsController {
     description: 'List of savings products',
     type: [SavingsProductDto],
   })
+  @ApiResponse({ status: 429, description: 'Too many requests' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
   async getProducts(
     @Query('sort') sort?: 'apy' | 'tvl',
   ): Promise<SavingsProductDto[]> {
@@ -128,6 +130,7 @@ export class SavingsController {
   })
   @ApiResponse({ status: 400, description: 'Invalid product or amount' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 429, description: 'Too many requests' })
   async subscribe(
     @Body() dto: SubscribeDto,
     @CurrentUser() user: { id: string; email: string },
@@ -187,6 +190,7 @@ export class SavingsController {
   })
   @ApiResponse({ status: 400, description: 'Invalid goal data' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 429, description: 'Too many requests' })
   async createGoal(
     @Body() dto: CreateGoalDto,
     @CurrentUser() user: { id: string; email: string },
@@ -223,6 +227,7 @@ export class SavingsController {
   @ApiResponse({ status: 400, description: 'Invalid goal data' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Goal not found' })
+  @ApiResponse({ status: 429, description: 'Too many requests' })
   async updateGoal(
     @Param('id') id: string,
     @Body() dto: UpdateGoalDto,
@@ -249,6 +254,7 @@ export class SavingsController {
   @ApiResponse({ status: 204, description: 'Goal deleted' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Goal not found' })
+  @ApiResponse({ status: 429, description: 'Too many requests' })
   async deleteGoal(
     @Param('id') id: string,
     @CurrentUser() user: { id: string; email: string },
