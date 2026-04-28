@@ -39,6 +39,7 @@ export class AuthService {
   private readonly REFRESH_TOKEN_EXPIRY_DAYS = 7;
   private readonly MAX_FAILED_ATTEMPTS = 5;
   private readonly LOCKOUT_DURATION_MINUTES = 60;
+  private readonly SESSION_EXPIRY_HOURS = 24;
 
   constructor(
     private readonly userService: UserService,
@@ -188,7 +189,9 @@ export class AuthService {
     // Lock account if max attempts reached
     if (newAttempts >= this.MAX_FAILED_ATTEMPTS) {
       const lockedUntil = new Date();
-      lockedUntil.setMinutes(lockedUntil.getMinutes() + this.LOCKOUT_DURATION_MINUTES);
+      lockedUntil.setMinutes(
+        lockedUntil.getMinutes() + this.LOCKOUT_DURATION_MINUTES,
+      );
       updateData.isLocked = true;
       updateData.lockedUntil = lockedUntil;
 
@@ -237,7 +240,11 @@ export class AuthService {
   async isUserLocked(userId: string): Promise<boolean> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) return false;
-    return user.isLocked && user.lockedUntil && user.lockedUntil > new Date();
+    return (
+      user.isLocked === true &&
+      user.lockedUntil != null &&
+      user.lockedUntil > new Date()
+    );
   }
 
   async validateUser(email: string, pass: string): Promise<any> {
@@ -280,11 +287,7 @@ export class AuthService {
 
     // Increment rate limit counter
     const newCount = (requestCount || 0) + 1;
-    await this.cacheManager.set(
-      rateLimitKey,
-      newCount,
-      this.RATE_LIMIT_WINDOW,
-    );
+    await this.cacheManager.set(rateLimitKey, newCount, this.RATE_LIMIT_WINDOW);
 
     // Generate nonce with timestamp for additional validation
     const nonce = randomUUID();
@@ -599,7 +602,11 @@ export class AuthService {
     }
 
     // Check if user account is locked
-    if (refreshToken.user.isLocked && refreshToken.user.lockedUntil && refreshToken.user.lockedUntil > new Date()) {
+    if (
+      refreshToken.user.isLocked &&
+      refreshToken.user.lockedUntil &&
+      refreshToken.user.lockedUntil > new Date()
+    ) {
       throw new UnauthorizedException('Account is locked');
     }
 
@@ -665,7 +672,15 @@ export class AuthService {
   async getUserActiveSessions(userId: string): Promise<RefreshToken[]> {
     return this.refreshTokenRepository.find({
       where: { userId, isRevoked: false },
-      select: ['id', 'deviceId', 'deviceName', 'ipAddress', 'userAgent', 'createdAt', 'expiresAt'],
+      select: [
+        'id',
+        'deviceId',
+        'deviceName',
+        'ipAddress',
+        'userAgent',
+        'createdAt',
+        'expiresAt',
+      ],
       order: { createdAt: 'DESC' },
     });
   }
@@ -720,7 +735,10 @@ export class AuthService {
     return result.affected || 0;
   }
 
-  async revokeUserSessionsByDevice(userId: string, deviceId: string): Promise<number> {
+  async revokeUserSessionsByDevice(
+    userId: string,
+    deviceId: string,
+  ): Promise<number> {
     const result = await this.sessionRepository.update(
       { userId, deviceId, isRevoked: false },
       { isRevoked: true },
@@ -731,7 +749,17 @@ export class AuthService {
   async getUserSessions(userId: string): Promise<Session[]> {
     return this.sessionRepository.find({
       where: { userId, isRevoked: false },
-      select: ['id', 'jti', 'deviceId', 'deviceName', 'ipAddress', 'userAgent', 'createdAt', 'expiresAt', 'lastAccessedAt'],
+      select: [
+        'id',
+        'jti',
+        'deviceId',
+        'deviceName',
+        'ipAddress',
+        'userAgent',
+        'createdAt',
+        'expiresAt',
+        'lastAccessedAt',
+      ],
       order: { createdAt: 'DESC' },
     });
   }
