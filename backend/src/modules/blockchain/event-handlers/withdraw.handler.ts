@@ -81,6 +81,12 @@ export class WithdrawHandler {
         order: { createdAt: 'DESC' },
       });
 
+      if (!subscription) {
+        throw new Error(
+          `No active subscription found for user ${user.id} to decrement withdrawal`,
+        );
+      }
+
       await txRepo.save(
         txRepo.create({
           userId: user.id,
@@ -100,12 +106,6 @@ export class WithdrawHandler {
           },
         }),
       );
-
-      if (!subscription) {
-        throw new Error(
-          `No active subscription found for user ${user.id} to decrement withdrawal`,
-        );
-      }
 
       // Decrement the amount natively in the database to ensure atomicity and precision
       await manager.decrement(
