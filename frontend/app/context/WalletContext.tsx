@@ -9,6 +9,11 @@ import React, {
   useRef,
 } from "react";
 import {
+  keepPreviousData,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import {
   isConnected,
   getAddress,
   getNetwork,
@@ -16,6 +21,14 @@ import {
   WatchWalletChanges,
 } from "@stellar/freighter-api";
 import { Horizon } from "@stellar/stellar-sdk";
+import {
+  COINGECKO_PRICE_GC_TIME,
+  COINGECKO_PRICE_STALE_TIME,
+  coingeckoPriceQueryKey,
+  walletBalanceQueryKey,
+  WALLET_BALANCE_GC_TIME,
+  WALLET_BALANCE_STALE_TIME,
+} from "@/app/lib/query";
 import { env } from "../config/env";
 
 /** Matches the CallbackParams shape from @stellar/freighter-api's WatchWalletChanges. */
@@ -70,6 +83,60 @@ const COINGECKO_IDS: Record<string, string> = {
   AQUA: "aqua",
 };
 
+interface CoingeckoPrices {
+  [assetId: string]: {
+    usd?: number;
+  };
+}
+
+interface WalletBalanceSnapshot {
+  balances: Balance[];
+  totalUsdValue: number;
+  lastBalanceSync: number;
+}
+
+async function fetchCoingeckoPrices(): Promise<CoingeckoPrices> {
+  const assetIds = Object.values(COINGECKO_IDS).join(",");
+  const response = await fetch(
+    `https://api.coingecko.com/api/v3/simple/price?ids=${assetIds}&vs_currencies=usd`,
+  );
+
+  if (!response.ok) {
+    throw new Error("Unable to load price data from CoinGecko.");
+  }
+
+  return response.json();
+}
+
+function buildBalanceSnapshot(
+  accountBalances: any[],
+  prices: CoingeckoPrices,
+): WalletBalanceSnapshot {
+  let totalUsdValue = 0;
+
+  const balances: Balance[] = accountBalances.map((balance) => {
+    const code = balance.asset_type === "native" ? "XLM" : balance.asset_code;
+    const coingeckoId = COINGECKO_IDS[code];
+    const price = prices[coingeckoId]?.usd || (code === "USDC" ? 1 : 0);
+    const usdValue = parseFloat(balance.balance) * price;
+
+    totalUsdValue += usdValue;
+
+    return {
+      asset_code: code,
+      balance: balance.balance,
+      asset_type: balance.asset_type,
+      asset_issuer: balance.asset_issuer,
+      usd_value: usdValue,
+    };
+  });
+
+  return {
+    balances,
+    totalUsdValue,
+    lastBalanceSync: Date.now(),
+  };
+}
 // Storage keys for persistence
 const STORAGE_KEYS = {
   LAST_NETWORK: "nestera_last_network",
@@ -98,8 +165,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     hasConnectionIssue: false,
   });
 
-  const refreshInterval = useRef<NodeJS.Timeout | null>(null);
   const networkWatcher = useRef<WatchWalletChanges | null>(null);
+  const queryClient = useQueryClient();
   const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const disconnectionCheckInterval = useRef<NodeJS.Timeout | null>(null);
   const isInitializedRef = useRef(false);
@@ -135,6 +202,13 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     return null;
   };
 
+  const balanceQuery = useQuery<WalletBalanceSnapshot>({
+    queryKey: walletBalanceQueryKey(state.address, state.network),
+    enabled: Boolean(state.address),
+    queryFn: async () => {
+      if (!state.address) {
+        throw new Error("Wallet address is missing.");
+      }
   // Utility: Check if wallet is disconnected from extension
   const checkWalletDisconnection = useCallback(async () => {
     if (!state.address || !state.isConnected) return;
@@ -166,11 +240,32 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
     setState((s) => ({ ...s, isBalancesLoading: true, balanceError: null }));
 
-    try {
       const horizonUrl = getHorizonUrl(state.network);
       const server = new Horizon.Server(horizonUrl);
       const account = await server.loadAccount(state.address);
 
+      const prices = await queryClient.fetchQuery({
+        queryKey: coingeckoPriceQueryKey,
+        queryFn: fetchCoingeckoPrices,
+        staleTime: COINGECKO_PRICE_STALE_TIME,
+        gcTime: COINGECKO_PRICE_GC_TIME,
+      });
+
+      return buildBalanceSnapshot(account.balances as any[], prices);
+    },
+    staleTime: WALLET_BALANCE_STALE_TIME,
+    gcTime: WALLET_BALANCE_GC_TIME,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    placeholderData: keepPreviousData,
+  });
+
+  const fetchBalances = useCallback(async () => {
+    if (!state.address) return;
+
+    await balanceQuery.refetch();
+  }, [balanceQuery, state.address]);
       // Fetch prices
       const assetIds = Object.values(COINGECKO_IDS).join(",");
       const priceRes = await fetch(
@@ -278,8 +373,13 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     })();
   }, []);
 
-  // Fetch balances when address changes
   useEffect(() => {
+    if (state.isConnected || state.address) {
+      return;
+    }
+
+    queryClient.removeQueries({ queryKey: ["wallet-balances"] });
+  }, [queryClient, state.address, state.isConnected]);
     if (state.address) {
       fetchBalances();
 
@@ -547,6 +647,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   }, [connect, state.lastConnectedNetwork]);
 
   const disconnect = useCallback(() => {
+    queryClient.removeQueries({ queryKey: ["wallet-balances"] });
     // Clear all intervals and timeouts
     if (refreshInterval.current) clearInterval(refreshInterval.current);
     if (disconnectionCheckInterval.current) clearInterval(disconnectionCheckInterval.current);
@@ -583,17 +684,30 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       error: null,
       balanceError: null,
     }));
-  }, []);
+  }, [queryClient]);
+
+  const balances = balanceQuery.data?.balances ?? [];
+  const totalUsdValue = balanceQuery.data?.totalUsdValue ?? 0;
+  const lastBalanceSync = balanceQuery.data?.lastBalanceSync ?? null;
+  const isBalancesLoading = Boolean(state.address) && balanceQuery.isFetching;
+  const balanceError = balanceQuery.error
+    ? balanceQuery.error instanceof Error
+      ? balanceQuery.error.message
+      : "Unable to refresh wallet balances."
+    : null;
 
   return (
     <WalletContext.Provider
       value={{
         ...state,
+        balances,
+        totalUsdValue,
+        lastBalanceSync,
+        isBalancesLoading,
+        balanceError,
         connect,
         disconnect,
         fetchBalances,
-        reconnect,
-        clearError,
       }}
     >
       {children}
