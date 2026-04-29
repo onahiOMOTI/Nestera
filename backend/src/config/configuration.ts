@@ -115,4 +115,11 @@ export default () => ({
       10,
     ),
   },
+  savings: {
+    // Compounding frequency: periods per year (365=daily, 12=monthly, 0=continuous)
+    compoundingFrequency: parseInt(
+      process.env.SAVINGS_COMPOUNDING_FREQUENCY || '365',
+      10,
+    ),
+  },
 });
